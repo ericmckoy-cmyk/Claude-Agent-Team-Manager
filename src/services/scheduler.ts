@@ -6,6 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { readTextFile, writeTextFile, exists, mkdir } from "@tauri-apps/plugin-fs";
 import { join } from "@/utils/paths";
 import { isWindows } from "@/utils/platform";
+import { parseCronForOs } from "@/services/cron";
 
 export interface ScheduleRecord {
   id: string;
@@ -27,31 +28,6 @@ function generateTaskName(teamName: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
   return `${slug}-${Date.now().toString(36)}`;
-}
-
-/** Parse a cron expression into start_time (HH:MM) and repeat type for schtasks. */
-function parseCronForOs(cron: string): { startTime: string; repeat: string } {
-  const parts = cron.trim().split(/\s+/);
-  if (parts.length < 5) return { startTime: "09:00", repeat: "once" };
-
-  const [min, hour, dayOfMonth, , dayOfWeek] = parts;
-
-  // Determine repeat type
-  let repeat = "daily";
-  if (hour === "*") {
-    repeat = "hourly";
-  } else if (dayOfWeek !== "*" && dayOfWeek !== "?") {
-    repeat = "weekly";
-  } else if (dayOfMonth !== "*" && dayOfMonth !== "?") {
-    repeat = "monthly";
-  }
-
-  // Build HH:MM
-  const h = hour === "*" ? "0" : hour.replace(/\*\//, "");
-  const m = min === "*" ? "0" : min.replace(/\*\//, "");
-  const startTime = `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
-
-  return { startTime, repeat };
 }
 
 function getTodayDate(): string {
